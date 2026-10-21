@@ -1,0 +1,29 @@
+name: yt-plugin
+
+# The plugin runs next to the server. The server reaches it in the shared network at http://youtube-plugin:8100
+# (it joins the server project's network; adjust the name via SERVER_NETWORK if the server's network is named differently).
+services:
+  youtube-plugin:
+    build: .
+    image: yt-plugin:latest
+    restart: unless-stopped
+    environment:
+      PLUGIN_TOKEN: "${PLUGIN_TOKEN:?set PLUGIN_TOKEN in .env}"
+      CACHE_LIMIT_GB: "${CACHE_LIMIT_GB:-20}"
+      # Not needed when the server starts the plugin itself. Only for "Also keep in the library" in this separate-service setup:
+      # mount the server's import folder (the Docker volume of the server, folder "imported") here and point the plugin to it.
+      # PLUGIN_IMPORT_DIR: "/import"
+    volumes:
+      - plugin-data:/data
+      # - server_app-data:/server-data:ro   # example only; the plugin needs write access to <server data>/imported
+    networks:
+      - server
+    # Only reachable inside the Docker network; for manual tests: ports: ["127.0.0.1:8100:8100"]
+
+networks:
+  server:
+    name: "${SERVER_NETWORK:-nxtsound_default}"
+    external: true
+
+volumes:
+  plugin-data:

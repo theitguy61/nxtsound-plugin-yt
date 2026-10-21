@@ -1,0 +1,118 @@
+{
+  "id": "yt",
+  "name": "YT Music",
+  "version": "0.1.0",
+  "api_version": 1,
+  "entry": "app:app",
+  "requirements": "requirements.txt",
+  "description": "Search, radio, artists and albums from YT Music; audio via yt-dlp.",
+  "settings": [
+    {
+      "key": "prefetch",
+      "type": "int",
+      "label": {
+        "en": "Songs to load ahead",
+        "de": "Titel im Voraus laden"
+      },
+      "help": {
+        "en": "How many of the next songs in the queue the server fetches while you listen, so they start without waiting. 0 = only when played.",
+        "de": "Wie viele der nächsten Titel in der Warteschlange schon während des Hörens auf den Server geladen werden, damit sie ohne Wartezeit starten. 0 = erst beim Abspielen."
+      },
+      "min": 0,
+      "max": 10,
+      "unit": {
+        "en": "songs",
+        "de": "Titel"
+      },
+      "default": 2
+    },
+    {
+      "key": "storage",
+      "type": "choice",
+      "label": {
+        "en": "Downloaded songs",
+        "de": "Heruntergeladene Titel"
+      },
+      "help": {
+        "en": "Cache: only kept temporarily, the oldest are deleted when the cache is full. Library: every song is also saved permanently into your library (in a folder of this plugin), so it fills up while you listen.",
+        "de": "Cache: nur vorübergehend gespeichert, die ältesten werden bei vollem Cache gelöscht. Bibliothek: jeder Titel wird zusätzlich dauerhaft in deiner Bibliothek (in einem Ordner dieses Plugins) gespeichert, sie füllt sich also beim Hören."
+      },
+      "default": "cache",
+      "choices": [
+        {
+          "value": "cache",
+          "label": {
+            "en": "Cache only",
+            "de": "Nur Cache"
+          }
+        },
+        {
+          "value": "library",
+          "label": {
+            "en": "Also keep in the library",
+            "de": "Zusätzlich in der Bibliothek behalten"
+          }
+        }
+      ]
+    },
+    {
+      "key": "auto_update",
+      "type": "bool",
+      "label": {
+        "en": "Update yt-dlp automatically",
+        "de": "yt-dlp automatisch aktualisieren"
+      },
+      "help": {
+        "en": "YouTube changes often and breaks yt-dlp; updating keeps playback working.",
+        "de": "YouTube ändert sich oft und legt yt-dlp lahm; Aktualisieren hält die Wiedergabe am Laufen."
+      },
+      "default": true
+    },
+    {
+      "key": "update_hours",
+      "type": "int",
+      "label": {
+        "en": "Check for updates every",
+        "de": "Nach Updates suchen alle"
+      },
+      "min": 1,
+      "max": 720,
+      "unit": {
+        "en": "hours",
+        "de": "Stunden"
+      },
+      "default": 6,
+      "depends_on": "auto_update"
+    },
+    {
+      "key": "channel",
+      "type": "choice",
+      "label": {
+        "en": "yt-dlp branch",
+        "de": "yt-dlp-Zweig"
+      },
+      "help": {
+        "en": "Stable is tested; nightly brings YouTube fixes days earlier but can be less stable. Switching back to stable replaces the installed nightly.",
+        "de": "Stable ist getestet; Nightly bringt YouTube-Fixes Tage früher, kann aber weniger stabil sein. Der Wechsel zurück auf Stable ersetzt das installierte Nightly."
+      },
+      "default": "stable",
+      "depends_on": "auto_update",
+      "choices": [
+        {
+          "value": "stable",
+          "label": {
+            "en": "Stable",
+            "de": "Stable"
+          }
+        },
+        {
+          "value": "nightly",
+          "label": {
+            "en": "Nightly",
+            "de": "Nightly"
+          }
+        }
+      ]
+    }
+  ]
+}

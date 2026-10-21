@@ -1,0 +1,5 @@
+fastapi>=0.115
+ytmusicapi>=1.8
+yt-dlp[default]
+# JavaScript runtime that YouTube requires for yt-dlp (binary inside the package, nothing else to install)
+deno
