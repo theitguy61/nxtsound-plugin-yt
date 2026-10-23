@@ -15,6 +15,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -123,6 +124,26 @@ def keep_path(info: dict, src: Path) -> Path | None:
     return IMPORT_DIR / (f"{artist} - {title}{ext}" if artist else f"{title}{ext}")
 
 
+def _fetch(url: str) -> bytes:
+    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"}), timeout=10) as r:  # noqa: S310 (https only, see _save_cover)
+        return r.read(5_000_001)
+
+
+def _save_cover(info: dict, dest: Path) -> None:
+    """Puts the song's picture next to it (Title.jpg beside Title.m4a), which the server uses as the cover. A song without one is fine."""
+    url = info.get("thumbnail") or ""
+    if not url.startswith("https://"):
+        return
+    ext = Path(url.split("?")[0]).suffix.lower()
+    side = dest.with_suffix(ext if ext in (".jpg", ".jpeg", ".png", ".webp") else ".jpg")
+    try:
+        data = _fetch(url)
+        if 0 < len(data) <= 5_000_000:
+            side.write_bytes(data)
+    except Exception as e:  # noqa: BLE001
+        log.info("No cover for %s: %s", dest.name, e)
+
+
 def keep(info: dict, src: Path) -> Path | None:
     """If the admin chose to keep songs: copies the downloaded file into the import folder (once per song). Returns the target or None."""
     if settings.get("storage") != "library":
@@ -133,6 +154,7 @@ def keep(info: dict, src: Path) -> Path | None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_name("." + dest.name + ".part")  # hidden until complete: the server's scan ignores names starting with a dot
     shutil.copyfile(src, tmp)
+    _save_cover(info, dest)  # before the song appears, so the next scan finds both
     os.replace(tmp, dest)
     log.info("Kept in the library: %s", dest.relative_to(IMPORT_DIR))
     return dest
