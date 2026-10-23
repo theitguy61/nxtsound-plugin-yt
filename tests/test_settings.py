@@ -113,6 +113,27 @@ def test_library_mode_copies_into_artist_album_folders(tmp_path):
     assert not [p for p in (tmp_path / "imported").rglob("*") if p.name.endswith(".part")]  # no leftovers; unfinished files are hidden by the dot anyway
 
 
+def test_the_picture_is_saved_next_to_the_kept_song(tmp_path, monkeypatch):
+    settings.update({"storage": "library"})
+    monkeypatch.setattr(audio, "_fetch", lambda url: b"IMG")
+    src = tmp_path / "x.m4a"
+    src.write_bytes(AUDIO)
+    dest = audio.keep({**INFO, "thumbnail": "https://i.ytimg.com/vi/x/maxresdefault.jpg?sqp=1"}, src)
+    assert dest.with_suffix(".jpg").read_bytes() == b"IMG"
+
+
+def test_a_missing_or_unreachable_picture_does_not_matter(tmp_path, monkeypatch):
+    settings.update({"storage": "library"})
+    monkeypatch.setattr(audio, "_fetch", lambda url: (_ for _ in ()).throw(OSError("offline")))
+    src = tmp_path / "x.m4a"
+    src.write_bytes(AUDIO)
+    dest = audio.keep({**INFO, "thumbnail": "https://i.ytimg.com/vi/x/a.jpg"}, src)
+    assert dest.is_file() and not dest.with_suffix(".jpg").exists()
+    src2 = tmp_path / "y.m4a"
+    src2.write_bytes(AUDIO)
+    assert audio.keep({**INFO, "track": "Other", "thumbnail": "http://insecure/a.jpg"}, src2).is_file()  # only https is fetched
+
+
 def test_songs_without_album_or_artist_get_flat_names(tmp_path):
     settings.update({"storage": "library"})
     src = tmp_path / "x.webm"
