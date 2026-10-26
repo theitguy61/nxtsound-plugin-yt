@@ -27,18 +27,18 @@ def fresh_settings(tmp_path, monkeypatch):
 
 def test_schema_in_the_manifest_is_valid_and_complete(client):
     m = pluginproto.validate_manifest(client.get("/manifest").json())
-    assert [s["key"] for s in m["settings"]] == ["prefetch", "storage", "auto_update", "update_hours", "channel"]
+    assert [s["key"] for s in m["settings"]] == ["prefetch", "storage", "radio_mix", "auto_update", "update_hours", "channel"]
     by = {s["key"]: s for s in m["settings"]}
     assert by["update_hours"]["depends_on"] == "auto_update" and by["channel"]["depends_on"] == "auto_update"
     assert {c["value"] for c in by["storage"]["choices"]} == {"cache", "library"} and {c["value"] for c in by["channel"]["choices"]} == {"stable", "nightly"}
-    assert settings.DEFAULTS == {"prefetch": 2, "storage": "cache", "auto_update": True, "update_hours": 6, "channel": "stable"}
+    assert settings.DEFAULTS == {"prefetch": 2, "storage": "cache", "radio_mix": "some", "auto_update": True, "update_hours": 6, "channel": "stable"}
     assert all(isinstance(s["label"], dict) and "de" in s["label"] for s in m["settings"])  # German texts for the admin area
 
 
 def test_put_settings_applies_validates_and_remembers(client, tmp_path):
     r = client.put("/settings", json={"values": {"prefetch": 5, "storage": "library", "channel": "nightly", "update_hours": 12, "auto_update": False}})
     assert r.status_code == 200 and {i["label"]["en"] for i in r.json()["info"]} >= {"yt-dlp version", "Cache"}
-    assert settings.values == {"prefetch": 5, "storage": "library", "channel": "nightly", "update_hours": 12, "auto_update": False}
+    assert settings.values == {"prefetch": 5, "storage": "library", "radio_mix": "some", "channel": "nightly", "update_hours": 12, "auto_update": False}
     assert json.loads((tmp_path / "settings.json").read_text())["prefetch"] == 5
     client.put("/settings", json={"values": {"prefetch": 99, "storage": "tape", "auto_update": "yes", "nope": 1}})  # invalid values and unknown keys are ignored
     assert settings.values["prefetch"] == 5 and settings.values["storage"] == "library" and settings.values["auto_update"] is False

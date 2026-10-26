@@ -15,6 +15,8 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 import audio
+import kept
+import meta
 import settings
 import ytsource
 
@@ -120,7 +122,10 @@ async def suggest(q: str = Query(min_length=1, max_length=100)):
 
 @router.get("/radio/{video_id}")
 async def radio(video_id: str, limit: int = Query(40, ge=1, le=100)):
-    return {"tracks": await _call(ytsource.radio, _video(video_id), limit)}
+    """YouTube's songs for this one, with songs kept in the library in between (setting "Kept songs in the radio")."""
+    found = await _call(ytsource.radio, _video(video_id), limit)
+    seed = meta.lookup(video_id) or {}
+    return {"tracks": kept.blend(found, video_id, seed.get("artist", ""), limit, settings.get("radio_mix"), audio.IMPORT_DIR)}
 
 
 @router.get("/artist/{artist_id}")
@@ -141,12 +146,20 @@ async def album(browse_id: str):
 
 @router.get("/stream/{video_id}")
 async def stream(video_id: str):
+    vid = _video(video_id)
+    local = audio.kept_file(vid)  # a copy in the library first: no download, nothing asked from YouTube
+    if local:
+        return FileResponse(local, media_type=audio.media_type(local))
     try:
-        path = await audio.ensure_cached(_video(video_id))
+        path = await audio.ensure_cached(vid)
     except audio.Timeout as e:
         raise HTTPException(504, str(e))
     except audio.Unavailable as e:
         raise HTTPException(502, f"Download failed: {e}")
+    try:
+        audio.adopt(vid)
+    except OSError as e:
+        log.info("Could not look for a kept copy of %s: %s", vid, e)
     return FileResponse(path, media_type=audio.media_type(path))  # Starlette serves Range requests
 
 
@@ -167,6 +180,7 @@ def _info() -> list[dict]:
     if s.get("error"):
         out.append({"label": {"en": "Update error", "de": "Update-Fehler"}, "value": s["error"]})
     out.append({"label": {"en": "Cache", "de": "Cache"}, "value": f"{len(files)} / {sum(p.stat().st_size for p in files) // 1024 // 1024} MB"})
+    out.append({"label": {"en": "Songs kept in the library", "de": "Titel in der Bibliothek behalten"}, "value": str(kept.count())})
     return out
 
 

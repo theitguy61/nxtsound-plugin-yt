@@ -55,7 +55,7 @@ def track(item: dict) -> dict | None:
         "album_id": (album.get("id") or "") if isinstance(album, dict) else "",
         "duration": item.get("duration") or item.get("length") or "", "thumb": _thumb(item),
     }
-    meta.remember(vid, out["title"], artist, out["album"])
+    meta.remember(vid, out["title"], artist, out["album"], out)
     return out
 
 
@@ -170,6 +170,6 @@ def album(browse_id: str) -> dict | None:
         t.update(thumb=t["thumb"] or cover, artist=t["artist"] or album_artist, artist_id=t["artist_id"] or album_artist_id,
                  album=a.get("title", ""), album_id=browse_id)
         out.append(t)
-        meta.remember(t["id"], t["title"], t["artist"], t["album"])
+        meta.remember(t["id"], t["title"], t["artist"], t["album"], t)
     return {"id": browse_id, "title": a.get("title", ""), "kind": a.get("type", ""), "year": a.get("year", ""), "duration": a.get("duration", ""),
             "thumb": cover, "artist": album_artist, "artist_id": album_artist_id, "tracks": out}

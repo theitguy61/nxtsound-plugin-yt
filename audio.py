@@ -19,6 +19,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import kept
 import meta
 import settings
 import yt_dlp
@@ -144,20 +145,50 @@ def _save_cover(info: dict, dest: Path) -> None:
         log.info("No cover for %s: %s", dest.name, e)
 
 
+def kept_file(video_id: str) -> Path | None:
+    """The copy of a song in the library, if this plugin kept one: playing it then needs no download."""
+    return kept.path_of(video_id, IMPORT_DIR)
+
+
+def _register(video_id: str, dest: Path, info: dict) -> None:
+    """Remembers that `dest` (below the import folder) is the library's copy of this YouTube song."""
+    if not video_id or IMPORT_DIR is None:
+        return
+    artist, title, album = describe(info)
+    track = meta.track_of(video_id) or {"id": video_id, "title": title, "artist": artist, "album": album}
+    kept.add(video_id, dest.relative_to(IMPORT_DIR).as_posix(), track)
+
+
 def keep(info: dict, src: Path) -> Path | None:
     """If the admin chose to keep songs: copies the downloaded file into the import folder (once per song). Returns the target or None."""
     if settings.get("storage") != "library":
         return None
     dest = keep_path(info, src)
-    if dest is None or dest.exists():
+    if dest is None:
+        return None
+    vid = info.get("id") or ""
+    if dest.exists():
+        _register(vid, dest, info)  # a copy from before the list of kept songs existed
         return None
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_name("." + dest.name + ".part")  # hidden until complete: the server's scan ignores names starting with a dot
     shutil.copyfile(src, tmp)
     _save_cover(info, dest)  # before the song appears, so the next scan finds both
     os.replace(tmp, dest)
+    _register(vid, dest, info)
     log.info("Kept in the library: %s", dest.relative_to(IMPORT_DIR))
     return dest
+
+
+def adopt(video_id: str) -> None:
+    """A song that is in the cache and whose copy in the library exists (kept before the list of kept songs did): remembers the copy,
+    so the next play comes from the library. Needs the name the search showed; nothing is copied here."""
+    if settings.get("storage") != "library" or IMPORT_DIR is None or kept_file(video_id) or not meta.lookup(video_id):
+        return
+    cached = cached_path(video_id)
+    dest = keep_path({"id": video_id}, cached) if cached else None
+    if dest is not None and dest.is_file():
+        _register(video_id, dest, {"id": video_id})
 
 
 def evict_if_needed() -> None:
@@ -241,7 +272,7 @@ def prefetch(video_ids: list[str]) -> int:
     """Starts fetching the first songs of the queue (as many as the setting allows) in the background; returns how many were started."""
     started = 0
     for vid in video_ids[:settings.get("prefetch")]:
-        if cached_path(vid) or len(_background) >= MAX_BACKGROUND:
+        if cached_path(vid) or kept_file(vid) or len(_background) >= MAX_BACKGROUND:
             continue
         task = asyncio.get_running_loop().create_task(_fetch_quietly(vid))
         _background.add(task)

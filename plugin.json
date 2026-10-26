@@ -1,7 +1,7 @@
 {
   "id": "yt",
   "name": "YT Music",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "api_version": 1,
   "entry": "app:app",
   "requirements": "requirements.txt",
@@ -51,6 +51,42 @@
           "label": {
             "en": "Also keep in the library",
             "de": "Zusätzlich in der Bibliothek behalten"
+          }
+        }
+      ]
+    },
+    {
+      "key": "radio_mix",
+      "type": "choice",
+      "label": {
+        "en": "Kept songs in the radio",
+        "de": "Behaltene Titel im Radio"
+      },
+      "help": {
+        "en": "A radio from a song is made of what YouTube suggests. This mixes in songs this plugin kept in the library (the same artist first), so that the library is heard too and the radio is not only YouTube's. Songs that are kept always play from the library, whatever you choose here.",
+        "de": "Ein Radio zu einem Titel besteht aus dem, was YouTube vorschlägt. Hier werden Titel dazwischengemischt, die dieses Plugin in der Bibliothek behalten hat (zuerst vom selben Künstler), damit die Bibliothek mitgehört wird und das Radio nicht nur von YouTube kommt. Behaltene Titel werden immer aus der Bibliothek abgespielt, egal was hier steht."
+      },
+      "default": "some",
+      "choices": [
+        {
+          "value": "off",
+          "label": {
+            "en": "Off",
+            "de": "Aus"
+          }
+        },
+        {
+          "value": "some",
+          "label": {
+            "en": "Some (about every 4th song)",
+            "de": "Etwas (etwa jeder 4. Titel)"
+          }
+        },
+        {
+          "value": "many",
+          "label": {
+            "en": "Many (about every 2nd song)",
+            "de": "Viel (etwa jeder 2. Titel)"
           }
         }
       ]
